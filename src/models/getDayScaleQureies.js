@@ -1,42 +1,36 @@
 import moment from 'moment';
 import db from './controllers/statisticsDB';
 
-const dateFormat = 'YYYY-MM-DD HH:mm:ss';
+const dateFormat = 'YYYY-MM-DD';
 
 const constructQueriesForDays = async () => {
   // Get date of last entry in table with precalculated statistics
   const getLastDayInLocal = async () => {
-    const newestEntry = await db.oneOrNone('SELECT * FROM day_stat2 ORDER BY day DESC LIMIT 1');
+    const newestEntry = await db.oneOrNone('SELECT * FROM day_stat ORDER BY day DESC LIMIT 1');
     let lastDate = '';
 
     if (newestEntry) {
-      lastDate = moment(newestEntry.day).startOf('day');
+      lastDate = moment(newestEntry.day);
 
       // Delete last line to insert new one
-      await db.none(`DELETE FROM day_stat2 WHERE day = '${moment(newestEntry.day).format('YYYY-MM-DD')}'`);
+      await db.none(`DELETE FROM day_stat WHERE day = '${moment(newestEntry.day).format('YYYY-MM-DD')}'`);
     } else {
-      lastDate = moment(new Date('2017.01.01')).startOf('day');
+      lastDate = moment(new Date('2017.01.01'));
     }
 
     return lastDate;
   };
 
+  // const lastDate = moment(new Date('2020.01.01'));
   const lastDate = await getLastDayInLocal();
-  // const currentDate = moment().endOf('day');
-  // const lastDate = moment(new Date('2019.05.07')).startOf('day');
-  // const lastDate = moment(new Date('2020.07.01')).startOf('day');
-  // const currentDate = moment().endOf('day');
-  const currentDate = moment(new Date('2019.01.01')).endOf('day');
+  const currentDate = moment();
+
   const queries = [];
   console.log(`From: ${lastDate.format(dateFormat)} To ${currentDate.format(dateFormat)}`);
 
   for (let i = moment(lastDate); i.isBefore(currentDate); i.add(1, 'days')) {
-    // orders_income
-    const periodStart = moment(i).startOf('day').format(dateFormat);
+    const periodStart = moment(i).format(dateFormat);
     const dayQueriesStack = [];
-
-    const ordersIncome = `SELECT SUM(order_sum) AS result FROM order_sales WHERE created_at BETWEEN '${periodStart}' AND end_of_day('${periodStart}')`;
-    dayQueriesStack.push(ordersIncome);
 
     // cost_price
     const costPrice = `SELECT SUM(net_price) AS result FROM order_sales WHERE created_at BETWEEN '${periodStart}' AND end_of_day('${periodStart}');`;
@@ -51,10 +45,6 @@ const constructQueriesForDays = async () => {
     // ordered
     const ordered = `SELECT COUNT(*) AS result FROM order_sales WHERE created_at BETWEEN '${periodStart}' AND end_of_day('${periodStart}')`;
     dayQueriesStack.push(ordered);
-
-    // avg_reciept
-    const avgReciept = `SELECT AVG(order_sum) AS result FROM order_sales WHERE created_at BETWEEN '${periodStart}' AND end_of_day('${periodStart}')`;
-    dayQueriesStack.push(avgReciept);
 
     const date = `SELECT '${periodStart}' AS result`;
     dayQueriesStack.push(date);

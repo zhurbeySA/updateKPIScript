@@ -1,6 +1,9 @@
 ## Get KPI's script
 Script which upload new statistics data from API server, calculate KPI's and write them in database. Calculate KPI's only for period of time between last date in table where calculated KPI's are stored and current date. All queries to database happen asynchronously.
 
+All data for connecting to databases is entered from environment vairables stored in file .env in root of project.\
+Obviously, this file isn't included in repository
+
 ## How to run
 Run next command:
 1. ```npm install```

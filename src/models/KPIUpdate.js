@@ -1,7 +1,7 @@
 import moment from 'moment';
 import db from './controllers/statisticsDB';
 
-const KPIUpdate = async (getQueriesFunc) => {
+const KPIUpdate = async (getQueriesFunc, scale) => {
   let counter = 0;
 
   // Get all queries for calculating statistics
@@ -15,7 +15,7 @@ const KPIUpdate = async (getQueriesFunc) => {
         console.log(`got ${counter}`);
 
         if (response) {
-          console.log(response[5]);
+          console.log(response[3]);
           return response;
         }
 
@@ -23,22 +23,32 @@ const KPIUpdate = async (getQueriesFunc) => {
       }),
   ));
 
-  console.log(results);
-  results.forEach((responsesArr) => {
+  console.log('All calculated, start insert data');
+  await results.forEach((responsesArr) => {
     const line = responsesArr.map((stat) => stat.result);
-    console.log(line);
 
     const value0 = !line[0] || line[0] === '0' ? 0 : line[0];
     const value1 = !line[1] || line[1] === '0' ? 0 : line[1];
     const value2 = !line[2] || line[2] === '0' ? 0 : line[2];
-    const value3 = !line[3] || line[3] === '0' ? 0 : line[3];
-    const value4 = !line[4] || line[4] === '0' ? 0 : line[4];
-    const date = moment(new Date(line[5])).format('YYYY-MM-DD');
 
-    db.none(`INSERT INTO day_stat2(orders_income, cost_price, extra_price, ordered, avg_reciept, day) VALUES(${value0}, ${[value1]}, ${value2}, ${value3}, ${value4}, '${date}')`);
+    let date = '';
+    let dateProp = '';
+    if (scale === 'day') {
+      date = moment(new Date(line[3])).format('YYYY-MM-DD');
+      dateProp = 'day';
+    } else if (scale === 'month') {
+      date = moment(new Date(line[3])).add(14, 'days').format('YYYY-MM-DD');
+      dateProp = 'month_year';
+    } else {
+      // eslint-disable-next-line
+      date = line[3];
+      dateProp = 'year';
+    }
 
-    console.log('insert something !!');
+    db.none(`INSERT INTO ${scale}_stat(cost_price, extra_price, ordered, ${dateProp}) VALUES(${value0}, ${[value1]}, ${value2}, '${date}')`);
   });
+
+  console.log('all done');
 };
 
 export default KPIUpdate;
